@@ -16,6 +16,7 @@ body {
     align-items: center;
 
     background-color: #262626;
+    user-select: none;
 }
 
 canvas {

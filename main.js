@@ -2,6 +2,9 @@
 
 //==================== CONSTANTS ====================//
 
+const raycastingButton = document.getElementById("raycasting");
+const renderingButton = document.getElementById("rendering");
+
 const canvas = document.getElementById("canvas");
 const c = canvas.getContext("2d");
 
@@ -18,6 +21,8 @@ const RAYS_STROKE_COLOR = "#f0f8ff30";
 
 const BORDERS_STROKE_WIDTH = 2;
 const BORDERS_STROKE_COLOR = "#f0f8ff";
+
+var modeSelected = 0;
 
 const mouseCoords = {
     x: 0,
@@ -262,6 +267,22 @@ class Wall {
 
 canvas.addEventListener("mousemove", updateCurrentMouseCoords, false);
 
+raycastingButton.addEventListener("click", event => {
+    if (getElementIndex(event.target.className.split(' '), 'selected') === -1) {
+        event.target.className += ' selected';
+    }
+    modeSelected = 0;
+    renderingButton.className = renderingButton.className.split(' ')[0];
+});
+
+renderingButton.addEventListener("click", event => {
+    if (getElementIndex(event.target.className.split(' '), 'selected') === -1) {
+        event.target.className += ' selected';
+    }
+    modeSelected = 1;
+    raycastingButton.className = renderingButton.className.split(' ')[0];
+});
+
 const player = new Player();
 const borders = [
     new Wall([
@@ -315,4 +336,11 @@ function updateCurrentMouseCoords(p) {
 function prepareCanvas() {
     c.fillStyle = "#000000";
     c.fillRect(0, 0, cWidth, cHeight);
+}
+
+function getElementIndex(array, elem) {
+    for (let i = 0; i < array.length; i++) {
+        if (elem == array[i]) return i;
+    }
+    return -1;
 }

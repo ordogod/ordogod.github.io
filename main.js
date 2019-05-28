@@ -11,7 +11,13 @@ const cHeight = canvas.height;
 const tick = Math.round(1000 / 60);
 
 const PLAYER_RADIUS = 5;
-const RAYS_COUNT = 20;
+
+const RAYS_COUNT = 360 * 4;
+const RAYS_STROKE_WIDTH = 1;
+const RAYS_STROKE_COLOR = "#f0f8ff30";
+
+const BORDERS_STROKE_WIDTH = 2;
+const BORDERS_STROKE_COLOR = "#f0f8ff";
 
 const mouseCoords = {
     x: 0,
@@ -20,10 +26,29 @@ const mouseCoords = {
 
 //==================== CLASSES ====================//
 
+class Calc {
+    static fromDegsToRads(degrees) {
+        return degrees * Math.PI / 180;
+    }
+
+    static distance(vectorFrom, vectorTo) {
+        if (vectorFrom instanceof Ray) vectorFrom = new Vector(vectorFrom.pos.x, vectorFrom.pos.y);
+        if (vectorTo instanceof Ray) vectorTo = new Vector(vectorTo.pos.x, vectorTo.pos.y);
+
+        return Math.sqrt(Math.pow(vectorTo.x - vectorFrom.x, 2) + Math.pow(vectorTo.y - vectorFrom.y, 2));
+    }
+}
+
 class Vector {
-    constructor(x, y) {
+
+    constructor(x = 0, y = 0) {
         this.x = x;
         this.y = y;
+    }
+
+    static copyVector(to, from) {
+        to.x = from.x;
+        to.y = from.y;
     }
 }
 
@@ -31,19 +56,34 @@ class Player {
 
     constructor() {
         this.pos = new Vector(0, 0)
+        this.rays = [];
+
+        for (let i = 0; i < 360; i += 360 / RAYS_COUNT) {
+            this.rays.push(
+                new Ray(
+                    this.pos,
+                    new Vector(
+                        Math.cos(Calc.fromDegsToRads(i)),
+                        Math.sin(Calc.fromDegsToRads(i))
+                    )
+                )
+            );
+        }
     }
 
     updatePos() {
         this.pos = mouseCoords;
     }
 
-    getPos() { return this.pos; }
+    getPos() {
+        return this.pos;
+    }
 
     draw() {
-        c.strokeStyle = "#f0f8ff";
+        c.fillStyle = "#f0f8ff";
         c.beginPath();
         c.arc(player.pos.x, player.pos.y, PLAYER_RADIUS, 0, 2 * Math.PI);
-        c.stroke();
+        c.fill();
     }
 }
 
@@ -55,8 +95,10 @@ class Ray {
         this.dir = vectorDirection;
     }
 
-    updatePos() {
-        this.pos = player.getPos();
+    static updatePos(rays) {
+        for (let i = 0; i < rays.length; i++) {
+            rays[i].pos = player.getPos();
+        }
     }
 
     cast(border) {
@@ -95,18 +137,64 @@ class Ray {
         return false;
     }
 
-    draw() {
-        c.strokeStyle = "#f0f8ff";
-
-        c.save();
-        c.translate(this.pos.x, this.pos.y);
-
+    static drawAll(rays) {
+        c.lineWidth = RAYS_STROKE_WIDTH;
+        c.strokeStyle = RAYS_STROKE_COLOR;
         c.beginPath();
-        c.moveTo(0, 0);
-        c.lineTo(this.dir.x, this.dir.y);
-        c.stroke();
 
-        c.restore();
+        let closestCollisionPoint;
+        let currentCollisionPoint;
+
+        for (let i = 0; i < rays.length; i++) { // for rays
+
+            closestCollisionPoint = null;
+
+            for (let j = 0; j < borders.length; j++) { // for borders
+
+                if (borders[j] instanceof Border) {
+
+                    currentCollisionPoint = rays[i].cast(borders[j]);
+
+                    if (currentCollisionPoint) { // if collision detected
+                        if (closestCollisionPoint === null) { // if closes point of collision is null
+                            // set it as current collision point
+                            closestCollisionPoint = new Vector();
+                            Vector.copyVector(closestCollisionPoint, currentCollisionPoint);
+                        }
+                        else {
+                            if (Calc.distance(rays[i], currentCollisionPoint) < Calc.distance(rays[i], closestCollisionPoint)) {
+                                Vector.copyVector(closestCollisionPoint, currentCollisionPoint);
+                            }
+                        }
+                    }
+                }
+
+                if (borders[j] instanceof Wall) {
+                    for (let k = 0; k < borders[j].borders.length; k++) { // for borders in the Wall
+
+                        currentCollisionPoint = rays[i].cast(borders[j].borders[k]);
+
+                        if (currentCollisionPoint) { // if collision detected
+                            if (closestCollisionPoint === null) { // if closes point of collision is null
+                                // set it as current collision point
+                                closestCollisionPoint = new Vector();
+                                Vector.copyVector(closestCollisionPoint, currentCollisionPoint);
+                            }
+                            else {
+                                if (Calc.distance(rays[i], currentCollisionPoint) < Calc.distance(rays[i], closestCollisionPoint)) {
+                                    Vector.copyVector(closestCollisionPoint, currentCollisionPoint);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            c.moveTo(rays[i].pos.x, rays[i].pos.y);
+            c.lineTo(closestCollisionPoint.x, closestCollisionPoint.y);
+        }
+
+        c.stroke();
     }
 }
 
@@ -117,12 +205,56 @@ class Border {
         this.end = vectorEnd;
     }
 
+    static drawAll(borders) {
+        c.lineWidth = BORDERS_STROKE_WIDTH;
+        c.strokeStyle = BORDERS_STROKE_COLOR;
+
+        for (let i = 0; i < borders.length; i++) {
+            if (borders[i] instanceof Border) {
+                c.beginPath();
+                c.moveTo(borders[i].start.x, borders[i].start.y);
+                c.lineTo(borders[i].end.x, borders[i].end.y);
+                c.stroke();
+            }
+            if (borders[i] instanceof Wall) {
+                borders[i].draw();
+            }
+        }
+    }
+}
+
+class Wall {
+
+    constructor(corners, isFilled) { // gets all corners of wall borders
+        this.corners = corners;
+        this.borders = [];
+        this.filled = isFilled;
+
+        for (let i = 0; i < corners.length - 1; i++) {
+            this.borders.push(
+                new Border(corners[i], corners[i + 1])
+            );
+        }
+
+        this.borders.push(new Border(corners[corners.length - 1], corners[0]));
+    }
+
     draw() {
-        c.strokeStyle = "#f0f8ff";
+        c.lineWidth = BORDERS_STROKE_WIDTH;
+        c.strokeStyle = BORDERS_STROKE_COLOR;
+        c.fillStyle = BORDERS_STROKE_COLOR;
+
         c.beginPath();
-        c.moveTo(this.start.x, this.start.y);
-        c.lineTo(this.end.x, this.end.y);
-        c.stroke();
+        c.moveTo(this.corners[0].x, this.corners[0].y);
+
+        for (let i = 1; i < this.corners.length; i++) {
+            c.lineTo(this.corners[i].x, this.corners[i].y);
+        }
+
+        c.lineTo(this.corners[0].x, this.corners[0].y); // encloses wall
+
+        if (this.filled) c.fill();
+        else c.stroke();
     }
 }
 
@@ -131,8 +263,31 @@ class Border {
 canvas.addEventListener("mousemove", updateCurrentMouseCoords, false);
 
 const player = new Player();
-const border = new Border(new Vector(500, 100), new Vector(500, cHeight - 100));
-const ray = new Ray(player.getPos(), new Vector(15, 0));
+const borders = [
+    new Border(new Vector(500, 100), new Vector(500, cHeight - 100)),
+    new Wall([
+        new Vector(0, 0),
+        new Vector(cWidth, 0),
+        new Vector(cWidth, cHeight),
+        new Vector(0, cHeight)
+    ], false),
+    new Border(
+        new Vector(Math.random() * cWidth, Math.random() * cHeight),
+        new Vector(Math.random() * cWidth, Math.random() * cHeight)
+    ),
+    new Border(
+        new Vector(Math.random() * cWidth, Math.random() * cHeight),
+        new Vector(Math.random() * cWidth, Math.random() * cHeight)
+    ),
+    new Border(
+        new Vector(Math.random() * cWidth, Math.random() * cHeight),
+        new Vector(Math.random() * cWidth, Math.random() * cHeight)
+    ),
+    new Border(
+        new Vector(Math.random() * cWidth, Math.random() * cHeight),
+        new Vector(Math.random() * cWidth, Math.random() * cHeight)
+    )
+];
 
 setInterval(loop, tick);
 
@@ -145,18 +300,12 @@ function loop() {
     player.updatePos();
     player.draw();
 
-    border.draw();
+    Border.drawAll(borders);
 
-    ray.updatePos();
-    ray.draw();
+    Ray.updatePos(player.rays);
+    Ray.drawAll(player.rays);
 
-    let pt = ray.cast(border);
-    if (pt) {
-        c.strokeStyle = "#f0f8ff";
-        c.beginPath();
-        c.arc(pt.x, pt.y, 2, 0, 2 * Math.PI);
-        c.stroke();
-    }
+
 }
 
 function updateCurrentMouseCoords(p) {

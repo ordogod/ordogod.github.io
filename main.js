@@ -13,7 +13,7 @@ const cHeight = canvas.height;
 
 const tick = Math.round(1000 / 60);
 
-const PLAYER_RADIUS = 5;
+const RAYCASTER_RADIUS = 5;
 
 const RAYS_COUNT = 360 * 4;
 const RAYS_STROKE_WIDTH = 1;
@@ -57,7 +57,7 @@ class Vector {
     }
 }
 
-class Player {
+class Raycaster {
 
     constructor() {
         this.pos = new Vector(0, 0);
@@ -87,7 +87,7 @@ class Player {
     draw() {
         c.fillStyle = "#f0f8ff";
         c.beginPath();
-        c.arc(player.pos.x, player.pos.y, PLAYER_RADIUS, 0, 2 * Math.PI);
+        c.arc(this.pos.x, this.pos.y, RAYCASTER_RADIUS, 0, 2 * Math.PI);
         c.fill();
     }
 }
@@ -102,7 +102,7 @@ class Ray {
 
     static updatePos(rays) {
         for (let i = 0; i < rays.length; i++) {
-            rays[i].pos = player.getPos();
+            rays[i].pos = raycaster.getPos();
         }
     }
 
@@ -265,6 +265,9 @@ class Wall {
 
 //==================== PREPARATION AND LOOP ====================//
 
+var raycastingInterval;
+var renderingInterval;
+
 canvas.addEventListener("mousemove", updateCurrentMouseCoords, false);
 
 raycastingButton.addEventListener("click", event => {
@@ -273,6 +276,8 @@ raycastingButton.addEventListener("click", event => {
     }
     modeSelected = 0;
     renderingButton.className = renderingButton.className.split(' ')[0];
+    clearInterval(renderingInterval);
+    raycastingInterval = setInterval(raycastingLoop, tick);
 });
 
 renderingButton.addEventListener("click", event => {
@@ -281,9 +286,11 @@ renderingButton.addEventListener("click", event => {
     }
     modeSelected = 1;
     raycastingButton.className = renderingButton.className.split(' ')[0];
+    clearInterval(raycastingInterval);
+    renderingInterval = setInterval(renderingLoop, tick);
 });
 
-const player = new Player();
+const raycaster = new Raycaster();
 const borders = [
     new Wall([
         new Vector(0, 0),
@@ -309,21 +316,26 @@ const borders = [
     )
 ];
 
-setInterval(loop, tick);
+raycastingInterval = setInterval(raycastingLoop, tick);
 
 //==================== FUNCTIONS ====================//
 
-function loop() {
+function raycastingLoop() {
 
     prepareCanvas();
 
-    player.updatePos();
-    player.draw();
+    raycaster.updatePos();
+    raycaster.draw();
 
     Border.drawAll(borders);
 
-    Ray.updatePos(player.rays);
-    Ray.drawAll(player.rays);
+    Ray.updatePos(raycaster.rays);
+    Ray.drawAll(raycaster.rays);
+}
+
+function renderingLoop() {
+
+    prepareCanvas();
 
 
 }

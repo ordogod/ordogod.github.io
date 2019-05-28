@@ -297,7 +297,7 @@ function loop() {
     prepareCanvas();
 
     player.updatePos();
-    Player.draw();
+    player.draw();
 
     Border.drawAll(borders);
 

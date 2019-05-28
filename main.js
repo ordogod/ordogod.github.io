@@ -55,7 +55,7 @@ class Vector {
 class Player {
 
     constructor() {
-        this.pos = new Vector(0, 0)
+        this.pos = new Vector(0, 0);
         this.rays = [];
 
         for (let i = 0; i < 360; i += 360 / RAYS_COUNT) {
@@ -264,7 +264,6 @@ canvas.addEventListener("mousemove", updateCurrentMouseCoords, false);
 
 const player = new Player();
 const borders = [
-    new Border(new Vector(500, 100), new Vector(500, cHeight - 100)),
     new Wall([
         new Vector(0, 0),
         new Vector(cWidth, 0),
@@ -298,7 +297,7 @@ function loop() {
     prepareCanvas();
 
     player.updatePos();
-    player.draw();
+    Player.draw();
 
     Border.drawAll(borders);
 

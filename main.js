@@ -22,8 +22,6 @@ const RAYS_STROKE_COLOR = "#f0f8ff30";
 const BORDERS_STROKE_WIDTH = 2;
 const BORDERS_STROKE_COLOR = "#f0f8ff";
 
-var modeSelected = 0;
-
 const mouseCoords = {
     x: 0,
     y: 0
@@ -50,6 +48,7 @@ class Vector {
         this.x = x;
         this.y = y;
     }
+
 
     static copyVector(to, from) {
         to.x = from.x;
@@ -147,6 +146,17 @@ class Ray {
         c.strokeStyle = RAYS_STROKE_COLOR;
         c.beginPath();
 
+        let borders = [];
+        for (let i = 0; i < colliders.length; i++) {
+            if (colliders[i] instanceof Border)
+                borders.push(colliders[i]);
+            else { // if instance of Wall
+                for (let j = 0; j < colliders[i].borders.length; j++) {
+                    borders.push(colliders[i].borders[j]);
+                }
+            }
+        }
+
         let closestCollisionPoint;
         let currentCollisionPoint;
 
@@ -154,43 +164,18 @@ class Ray {
 
             closestCollisionPoint = null;
 
-            for (let j = 0; j < borders.length; j++) { // for borders
+            for (let j = 0; j < borders.length; j++) { // for colliders
 
-                if (borders[j] instanceof Border) {
+                currentCollisionPoint = rays[i].cast(borders[j]); // false or Vector
 
-                    currentCollisionPoint = rays[i].cast(borders[j]);
+                if (currentCollisionPoint) { // if collision detected
 
-                    if (currentCollisionPoint) { // if collision detected
-                        if (closestCollisionPoint === null) { // if closes point of collision is null
-                            // set it as current collision point
-                            closestCollisionPoint = new Vector();
-                            Vector.copyVector(closestCollisionPoint, currentCollisionPoint);
-                        }
-                        else {
-                            if (Calc.distance(rays[i], currentCollisionPoint) < Calc.distance(rays[i], closestCollisionPoint)) {
-                                Vector.copyVector(closestCollisionPoint, currentCollisionPoint);
-                            }
-                        }
+                    if (closestCollisionPoint === null) {
+                        closestCollisionPoint = new Vector();
+                        Vector.copyVector(closestCollisionPoint, currentCollisionPoint);
                     }
-                }
-
-                if (borders[j] instanceof Wall) {
-                    for (let k = 0; k < borders[j].borders.length; k++) { // for borders in the Wall
-
-                        currentCollisionPoint = rays[i].cast(borders[j].borders[k]);
-
-                        if (currentCollisionPoint) { // if collision detected
-                            if (closestCollisionPoint === null) { // if closes point of collision is null
-                                // set it as current collision point
-                                closestCollisionPoint = new Vector();
-                                Vector.copyVector(closestCollisionPoint, currentCollisionPoint);
-                            }
-                            else {
-                                if (Calc.distance(rays[i], currentCollisionPoint) < Calc.distance(rays[i], closestCollisionPoint)) {
-                                    Vector.copyVector(closestCollisionPoint, currentCollisionPoint);
-                                }
-                            }
-                        }
+                    else if (Calc.distance(rays[i], currentCollisionPoint) < Calc.distance(rays[i], closestCollisionPoint)) {
+                        Vector.copyVector(closestCollisionPoint, currentCollisionPoint);
                     }
                 }
             }
@@ -230,7 +215,7 @@ class Border {
 
 class Wall {
 
-    constructor(corners, isFilled) { // gets all corners of wall borders
+    constructor(corners, isFilled) { // gets all corners of wall colliders
         this.corners = corners;
         this.borders = [];
         this.filled = isFilled;
@@ -273,25 +258,23 @@ canvas.addEventListener("mousemove", updateCurrentMouseCoords, false);
 raycastingButton.addEventListener("click", event => {
     if (getElementIndex(event.target.className.split(' '), 'selected') === -1) {
         event.target.className += ' selected';
+        renderingButton.className = renderingButton.className.split(' ')[0];
+        clearInterval(renderingInterval);
+        raycastingInterval = setInterval(raycastingLoop, tick);
     }
-    modeSelected = 0;
-    renderingButton.className = renderingButton.className.split(' ')[0];
-    clearInterval(renderingInterval);
-    raycastingInterval = setInterval(raycastingLoop, tick);
 });
 
 renderingButton.addEventListener("click", event => {
     if (getElementIndex(event.target.className.split(' '), 'selected') === -1) {
         event.target.className += ' selected';
+        raycastingButton.className = renderingButton.className.split(' ')[0];
+        clearInterval(raycastingInterval);
+        renderingInterval = setInterval(renderingLoop, tick);
     }
-    modeSelected = 1;
-    raycastingButton.className = renderingButton.className.split(' ')[0];
-    clearInterval(raycastingInterval);
-    renderingInterval = setInterval(renderingLoop, tick);
 });
 
 const raycaster = new Raycaster();
-const borders = [
+const colliders = [
     new Wall([
         new Vector(0, 0),
         new Vector(cWidth, 0),
@@ -327,7 +310,7 @@ function raycastingLoop() {
     raycaster.updatePos();
     raycaster.draw();
 
-    Border.drawAll(borders);
+    Border.drawAll(colliders);
 
     Ray.updatePos(raycaster.rays);
     Ray.drawAll(raycaster.rays);

@@ -22,6 +22,19 @@ const RAYS_STROKE_COLOR = "#f0f8ff30";
 const BORDERS_STROKE_WIDTH = 2;
 const BORDERS_STROKE_COLOR = "#f0f8ff";
 
+const PLAYER_VIEW_ANGLE = 60;
+const PLAYER_RAYS_PER_DEGREE = 2;
+const PLAYER_SIZE = 12;
+const PLAYER_ROTATION_SPEED = 10;
+const PLAYER_MOVE_SPEED = 10;
+
+var mode = 0;
+
+const renderingSize = {
+    width: cWidth / 2,
+    height: cHeight
+};
+
 const mouseCoords = {
     x: 0,
     y: 0
@@ -62,17 +75,43 @@ class Raycaster {
         this.pos = new Vector(0, 0);
         this.rays = [];
 
-        for (let i = 0; i < 360; i += 360 / RAYS_COUNT) {
-            this.rays.push(
-                new Ray(
-                    this.pos,
-                    new Vector(
-                        Math.cos(Calc.fromDegsToRads(i)),
-                        Math.sin(Calc.fromDegsToRads(i))
+        this.rays = Raycaster.makeRaysSet(RAYS_COUNT, new Vector(0, 0));
+    }
+
+    static makeRaysSet(raysCount = RAYS_COUNT, pos, startDegree, endDegree) {
+
+        let rays = [];
+
+        if (startDegree === undefined && endDegree === undefined) { // then make rays at whole circumference
+            for (let i = 0; i < 360; i += 360 / raysCount) {
+                rays.push(
+                    new Ray(
+                        pos,
+                        new Vector(
+                            Math.cos(Calc.fromDegsToRads(i)),
+                            Math.sin(Calc.fromDegsToRads(i))
+                        )
                     )
-                )
-            );
+                );
+            }
         }
+
+        else {
+            let arcDegree = Math.abs(startDegree - endDegree);
+            for (let i = startDegree; i < endDegree; i += arcDegree / raysCount) {
+                rays.push(
+                    new Ray(
+                        pos,
+                        new Vector(
+                            Math.cos(Calc.fromDegsToRads(i)),
+                            Math.sin(Calc.fromDegsToRads(i))
+                        )
+                    )
+                );
+            }
+        }
+
+        return rays;
     }
 
     updatePos() {
@@ -91,6 +130,82 @@ class Raycaster {
     }
 }
 
+class Player {
+
+    constructor(viewAngle = PLAYER_VIEW_ANGLE) {
+        this.viewAngle = viewAngle;
+        this.pos = new Vector(100, 100);
+        this.rotationDegree = 0;
+        this.rays = this.updateRays();
+    }
+
+    updateRays() {
+        return Raycaster.makeRaysSet(
+            PLAYER_VIEW_ANGLE * PLAYER_RAYS_PER_DEGREE,
+            this.pos,
+            this.rotationDegree - PLAYER_VIEW_ANGLE / 2,
+            this.rotationDegree + PLAYER_VIEW_ANGLE / 2
+        );
+    }
+
+    updateRaysPos() {
+        for (let i = 0; i < this.rays.length; i++) {
+            this.rays[i].pos.x = this.pos.x;
+            this.rays[i].pos.y = this.pos.y;
+        }
+    }
+
+    turnLeft() {
+        player.rotationDegree = (player.rotationDegree - PLAYER_ROTATION_SPEED) % 360;
+        this.rays = this.updateRays();
+        console.log('left');
+    }
+
+    turnRight() {
+        player.rotationDegree = (player.rotationDegree + PLAYER_ROTATION_SPEED) % 360;
+        this.rays = this.updateRays();
+        console.log('right');
+    }
+
+    moveForward() {
+        player.pos = new Vector(
+            player.pos.x + Math.cos(Calc.fromDegsToRads(player.rotationDegree)) * PLAYER_MOVE_SPEED,
+            player.pos.y + Math.sin(Calc.fromDegsToRads(player.rotationDegree)) * PLAYER_MOVE_SPEED
+        );
+        this.updateRaysPos();
+        console.log('forward');
+    }
+
+    getPos() {
+        return this.pos;
+    }
+
+    draw() {
+        c.fillStyle = "#f0f8ff";
+        c.beginPath();
+        c.save();
+        c.translate(this.pos.x, this.pos.y);
+        c.moveTo(
+            Math.cos(Calc.fromDegsToRads(this.rotationDegree + 90)) * PLAYER_SIZE,
+            Math.sin(Calc.fromDegsToRads(this.rotationDegree + 90)) * PLAYER_SIZE
+        );
+        c.lineTo(
+            2 * Math.cos(Calc.fromDegsToRads(this.rotationDegree)) * PLAYER_SIZE,
+            2 * Math.sin(Calc.fromDegsToRads(this.rotationDegree)) * PLAYER_SIZE
+        );
+        c.lineTo(
+            Math.cos(Calc.fromDegsToRads(this.rotationDegree - 90)) * PLAYER_SIZE,
+            Math.sin(Calc.fromDegsToRads(this.rotationDegree - 90)) * PLAYER_SIZE
+        );
+        c.lineTo(
+            Math.cos(Calc.fromDegsToRads(this.rotationDegree + 90)) * PLAYER_SIZE,
+            Math.sin(Calc.fromDegsToRads(this.rotationDegree + 90)) * PLAYER_SIZE
+        );
+        c.fill();
+        c.restore();
+    }
+}
+
 
 class Ray {
 
@@ -99,9 +214,10 @@ class Ray {
         this.dir = vectorDirection;
     }
 
-    static updatePos(rays) {
+    static updatePos(rays, pos) {
         for (let i = 0; i < rays.length; i++) {
-            rays[i].pos = raycaster.getPos();
+            rays[i].pos.x = pos.x;
+            rays[i].pos.y = pos.y;
         }
     }
 
@@ -141,7 +257,7 @@ class Ray {
         return false;
     }
 
-    static drawAll(rays) {
+    static drawAll(rays, colliders) {
         c.lineWidth = RAYS_STROKE_WIDTH;
         c.strokeStyle = RAYS_STROKE_COLOR;
         c.beginPath();
@@ -248,28 +364,38 @@ class Wall {
     }
 }
 
-//==================== PREPARATION AND LOOP ====================//
+//==================== PREPARATION AND LOOPS ====================//
 
 var raycastingInterval;
 var renderingInterval;
 
 canvas.addEventListener("mousemove", updateCurrentMouseCoords, false);
 
-raycastingButton.addEventListener("click", event => {
-    if (getElementIndex(event.target.className.split(' '), 'selected') === -1) {
-        event.target.className += ' selected';
-        renderingButton.className = renderingButton.className.split(' ')[0];
+raycastingButton.addEventListener("click", () => {
+    if (!isElementSelected(raycastingButton)) {
+        setElementSelectedClass(raycastingButton, renderingButton);
         clearInterval(renderingInterval);
         raycastingInterval = setInterval(raycastingLoop, tick);
+        mode = 0;
     }
 });
 
-renderingButton.addEventListener("click", event => {
-    if (getElementIndex(event.target.className.split(' '), 'selected') === -1) {
-        event.target.className += ' selected';
-        raycastingButton.className = renderingButton.className.split(' ')[0];
+renderingButton.addEventListener("click", () => {
+    if (!isElementSelected(renderingButton)) {
+        setElementSelectedClass(renderingButton, raycastingButton);
         clearInterval(raycastingInterval);
         renderingInterval = setInterval(renderingLoop, tick);
+        mode = 1;
+    }
+});
+
+document.addEventListener("keydown", event => {
+    event = event || window.event;
+
+    if (mode === 1) {
+        if (event.key === 'a') player.turnLeft();
+        if (event.key === 'd') player.turnRight();
+        if (event.key === 'w') player.moveForward();
     }
 });
 
@@ -299,6 +425,16 @@ const colliders = [
     )
 ];
 
+const player = new Player(PLAYER_VIEW_ANGLE);
+const walls = [
+    new Wall([
+        new Vector(0, 0),
+        new Vector(renderingSize.width, 0),
+        new Vector(renderingSize.width, renderingSize.height),
+        new Vector(0, renderingSize.height)
+    ], false)
+];
+
 raycastingInterval = setInterval(raycastingLoop, tick);
 
 //==================== FUNCTIONS ====================//
@@ -312,15 +448,20 @@ function raycastingLoop() {
 
     Border.drawAll(colliders);
 
-    Ray.updatePos(raycaster.rays);
-    Ray.drawAll(raycaster.rays);
+    Ray.updatePos(raycaster.rays, raycaster.getPos());
+    Ray.drawAll(raycaster.rays, colliders);
 }
 
 function renderingLoop() {
 
     prepareCanvas();
 
+    player.draw();
 
+    Border.drawAll(walls);
+
+    Ray.updatePos(player.rays, player.getPos());
+    Ray.drawAll(player.rays, walls);
 }
 
 function updateCurrentMouseCoords(p) {
@@ -338,4 +479,14 @@ function getElementIndex(array, elem) {
         if (elem == array[i]) return i;
     }
     return -1;
+}
+
+function isElementSelected(elem) {
+     return getElementIndex(elem.className.split(' '), 'selected') !== -1;
+
+}
+
+function setElementSelectedClass(elemToSet, elemSelected) {
+    elemToSet.className += ' selected';
+    elemSelected.className = elemSelected.className.split(' ')[0];
 }

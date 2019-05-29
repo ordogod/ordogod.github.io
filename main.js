@@ -23,7 +23,7 @@ const BORDERS_STROKE_WIDTH = 2;
 const BORDERS_STROKE_COLOR = "#f0f8ff";
 
 const PLAYER_VIEW_ANGLE = 60;
-const PLAYER_RAYS_PER_DEGREE = 2;
+const PLAYER_RAYS_PER_DEGREE = 20;
 const PLAYER_RADIUS = 12;
 const PLAYER_ROTATION_SPEED = 10;
 const PLAYER_MOVE_SPEED = 10;
@@ -180,7 +180,7 @@ class Player {
 
         let dist;
         let minDist = Infinity;
-        let dirRay = this.rays[this.rays.length / 2];
+        let dirRay = this.rays[Math.round(this.rays.length / 2)];
         let cp;
         let borders = Border.getRawBordersArr(walls);
 
@@ -422,7 +422,12 @@ class FirstPersonDrawer {
         let cp;
         let closestCP;
         let dist;
-        let minDist;
+        let maxDist = Math.sqrt(Math.pow(renderingSize.width, 2) + Math.pow(renderingSize.height, 2));
+
+        let yOff;
+        let alpha;
+        let height;
+        let width = renderingSize.width / player.rays.length;
 
         for (let i = 0; i < player.rays.length; i++) { // for rays
 
@@ -440,6 +445,18 @@ class FirstPersonDrawer {
                 }
             }
 
+            dist = Calc.distance(player.rays[i].pos, closestCP);
+            height = renderingSize.height / (dist / (2 * PLAYER_RADIUS));
+            yOff = (renderingSize.height - height) / 2;
+
+
+            alpha = 255 - (255 / maxDist * (dist - PLAYER_RADIUS));
+            if (alpha === Infinity || alpha > 255) alpha = 'ff';
+            else alpha = Math.round(alpha).toString(16);
+            if (alpha.length === 1) alpha = '0' + alpha;
+
+            c.fillStyle = "#" + alpha + alpha + alpha + alpha;
+            c.fillRect(renderingSize.width + i * width, yOff, width, height);
 
         }
     }

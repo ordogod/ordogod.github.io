@@ -14,16 +14,16 @@ const cHeight = canvas.height;
 const tick = Math.round(1000 / 60);
 
 const RAYCASTER_RADIUS = 5;
+var RAYCASTER_RAYS_PER_DEGREE = 4;
 
-const RAYS_COUNT = 360 * 4;
 const RAYS_STROKE_WIDTH = 1;
 const RAYS_STROKE_COLOR = "#f0f8ff30";
 
 const BORDERS_STROKE_WIDTH = 2;
 const BORDERS_STROKE_COLOR = "#f0f8ff";
 
-const PLAYER_VIEW_ANGLE = 60;
-const PLAYER_RAYS_PER_DEGREE = 6;
+var PLAYER_VIEW_ANGLE = 60;
+var PLAYER_RAYS_PER_DEGREE = 6;
 const PLAYER_RADIUS = 12;
 const PLAYER_ROTATION_SPEED = 10;
 const PLAYER_MOVE_SPEED = 10;
@@ -81,10 +81,14 @@ class Raycaster {
         this.pos = new Vector(0, 0);
         this.rays = [];
 
-        this.rays = Raycaster.makeRaysSet(RAYS_COUNT, new Vector(0, 0));
+        this.rays = Raycaster.makeRaysSet(360 * RAYCASTER_RAYS_PER_DEGREE, new Vector(0, 0));
     }
 
-    static makeRaysSet(raysCount = RAYS_COUNT, pos, startDegree, endDegree) {
+    updateRays() {
+        this.rays = Raycaster.makeRaysSet(360 * RAYCASTER_RAYS_PER_DEGREE, new Vector(0, 0));
+    }
+
+    static makeRaysSet(raysCount = 360 * RAYCASTER_RAYS_PER_DEGREE, pos, startDegree, endDegree) {
 
         let rays = [];
 
@@ -142,12 +146,12 @@ class Player {
         this.viewAngle = viewAngle;
         this.pos = new Vector(100, 100);
         this.rotationDegree = 0;
-        this.rays = this.updateRays();
+        this.updateRays();
     }
 
     updateRays() {
-        return Raycaster.makeRaysSet(
-            PLAYER_VIEW_ANGLE * PLAYER_RAYS_PER_DEGREE,
+        this.rays = Raycaster.makeRaysSet(
+            this.viewAngle * PLAYER_RAYS_PER_DEGREE,
             this.pos,
             this.rotationDegree - PLAYER_VIEW_ANGLE / 2,
             this.rotationDegree + PLAYER_VIEW_ANGLE / 2
@@ -163,13 +167,13 @@ class Player {
 
     turnLeft() {
         player.rotationDegree = (player.rotationDegree - PLAYER_ROTATION_SPEED) % 360;
-        this.rays = this.updateRays();
+        this.updateRays();
         console.log('left');
     }
 
     turnRight() {
         player.rotationDegree = (player.rotationDegree + PLAYER_ROTATION_SPEED) % 360;
-        this.rays = this.updateRays();
+        this.updateRays();
         console.log('right');
     }
 
@@ -423,7 +427,7 @@ class FirstPersonDrawer {
         let cp;
         let closestCP;
         let dist;
-        let maxDist = Math.sqrt(Math.pow(renderingSize.width, 2) + Math.pow(renderingSize.height, 2));
+        let maxDist = Math.max(renderingSize.width, renderingSize.height) * 1.2;
 
         let yOff;
         let alphaDec;
@@ -450,7 +454,6 @@ class FirstPersonDrawer {
             dist = Calc.distance(player.rays[i].pos, closestCP);
             height = renderingSize.height / (dist / (2 * PLAYER_RADIUS));
             yOff = (renderingSize.height - height) / 2;
-
 
             alphaDec = Math.round(255 - (255 / maxDist * (dist - PLAYER_RADIUS)));
             alphaHEX = fromRGBtoHex(Math.round(alphaDec));
@@ -485,6 +488,9 @@ raycastingButton.addEventListener("click", () => {
         clearInterval(renderingInterval);
         raycastingInterval = setInterval(raycastingLoop, tick);
         mode = 0;
+
+        angleItem.style.display = 'none';
+        raysRange.value = raysSpan.innerHTML = RAYCASTER_RAYS_PER_DEGREE;
     }
 });
 
@@ -494,6 +500,10 @@ renderingButton.addEventListener("click", () => {
         clearInterval(raycastingInterval);
         renderingInterval = setInterval(renderingLoop, tick);
         mode = 1;
+
+        angleItem.style.display = 'flex';
+        raysRange.value = raysSpan.innerHTML = PLAYER_RAYS_PER_DEGREE;
+        angleRange.value = angleSpan.innerHTML = PLAYER_VIEW_ANGLE;
     }
 });
 

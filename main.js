@@ -23,7 +23,7 @@ const BORDERS_STROKE_WIDTH = 2;
 const BORDERS_STROKE_COLOR = "#f0f8ff";
 
 const PLAYER_VIEW_ANGLE = 60;
-const PLAYER_RAYS_PER_DEGREE = 20;
+const PLAYER_RAYS_PER_DEGREE = 6;
 const PLAYER_RADIUS = 12;
 const PLAYER_ROTATION_SPEED = 10;
 const PLAYER_MOVE_SPEED = 10;
@@ -44,6 +44,7 @@ const WALLS_RANDOM_SIZE = {
     min: 1,
     max: Math.round(renderingSize.width * 0.7)
 };
+const WALLS_COLOR = '#b6b6b6';
 
 //==================== CLASSES ====================//
 
@@ -204,7 +205,7 @@ class Player {
     }
 
     draw() {
-            c.fillStyle = "#f0f8ff";
+            c.fillStyle = "#a7aec9";
             c.beginPath();
             c.arc(this.pos.x, this.pos.y, PLAYER_RADIUS, 0, 2 * Math.PI);
             c.fill();
@@ -392,8 +393,8 @@ class Wall {
 
     draw() {
         c.lineWidth = BORDERS_STROKE_WIDTH;
-        c.strokeStyle = BORDERS_STROKE_COLOR;
-        c.fillStyle = BORDERS_STROKE_COLOR;
+        c.strokeStyle = WALLS_COLOR;
+        c.fillStyle = WALLS_COLOR;
 
         c.beginPath();
         c.moveTo(this.corners[0].x, this.corners[0].y);
@@ -425,7 +426,8 @@ class FirstPersonDrawer {
         let maxDist = Math.sqrt(Math.pow(renderingSize.width, 2) + Math.pow(renderingSize.height, 2));
 
         let yOff;
-        let alpha;
+        let alphaDec;
+        let alphaHEX;
         let height;
         let width = renderingSize.width / player.rays.length;
 
@@ -450,13 +452,21 @@ class FirstPersonDrawer {
             yOff = (renderingSize.height - height) / 2;
 
 
-            alpha = 255 - (255 / maxDist * (dist - PLAYER_RADIUS));
-            if (alpha === Infinity || alpha > 255) alpha = 'ff';
-            else alpha = Math.round(alpha).toString(16);
-            if (alpha.length === 1) alpha = '0' + alpha;
+            alphaDec = Math.round(255 - (255 / maxDist * (dist - PLAYER_RADIUS)));
+            alphaHEX = fromRGBtoHex(Math.round(alphaDec));
 
-            c.fillStyle = "#" + alpha + alpha + alpha + alpha;
+            c.fillStyle = "#" + alphaHEX + alphaHEX + alphaHEX + alphaHEX; // stupid but works really great
             c.fillRect(renderingSize.width + i * width, yOff, width, height);
+
+            let floorIncr = Math.round(255 - alphaDec);
+            let floorHeight = yOff / floorIncr;
+
+            for (let k = 0; k < floorIncr; k++) {
+                c.fillStyle = "#3d3e46" + fromRGBtoHex(alphaDec);
+                c.fillRect(renderingSize.width + (i * width), yOff + height + (k * floorHeight), width, floorHeight);
+
+                alphaDec += 1;
+            }
 
         }
     }
@@ -558,12 +568,12 @@ function renderingLoop() {
 
     prepareCanvas();
 
-    player.draw();
-
     Border.drawAll(walls);
 
     Ray.updatePos(player.rays, player.getPos());
     Ray.drawAll(player.rays, walls);
+
+    player.draw();
 
     fpd.draw();
 }
@@ -593,4 +603,13 @@ function isElementSelected(elem) {
 function setElementSelectedClass(elemToSet, elemSelected) {
     elemToSet.className += ' selected';
     elemSelected.className = elemSelected.className.split(' ')[0];
+}
+
+function fromRGBtoHex(value) {
+    if (value === Infinity || value > 255) value = 'ff';
+    else value = Math.round(value).toString(16);
+
+    if (value.length === 1) value = '0' + value;
+
+    return value;
 }

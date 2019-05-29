@@ -52,11 +52,11 @@ class Calc {
         return degrees * Math.PI / 180;
     }
 
-    static distance(vectorFrom, vectorTo) {
-        if (vectorFrom instanceof Ray) vectorFrom = new Vector(vectorFrom.pos.x, vectorFrom.pos.y);
-        if (vectorTo instanceof Ray) vectorTo = new Vector(vectorTo.pos.x, vectorTo.pos.y);
+    static distance(from, to) {
+        if (from instanceof Ray) from = new Vector(from.pos.x, from.pos.y);
+        if (to instanceof Ray) to = new Vector(to.pos.x, to.pos.y);
 
-        return Math.sqrt(Math.pow(vectorTo.x - vectorFrom.x, 2) + Math.pow(vectorTo.y - vectorFrom.y, 2));
+        return Math.sqrt(Math.pow(to.x - from.x, 2) + Math.pow(to.y - from.y, 2));
     }
 }
 
@@ -178,17 +178,17 @@ class Player {
             player.pos.y + Math.sin(Calc.fromDegsToRads(player.rotationDegree)) * PLAYER_MOVE_SPEED
         );
 
-        let currentDist;
+        let dist;
         let minDist = Infinity;
         let dirRay = this.rays[this.rays.length / 2];
-        let currentCollisionPoint;
+        let cp;
         let borders = Border.getRawBordersArr(walls);
 
         for (let i = 0; i < borders.length; i++) {
-            currentCollisionPoint = dirRay.cast(borders[i]);
-            if (currentCollisionPoint) {
-                currentDist = Calc.distance(dirRay.pos, currentCollisionPoint);
-                if (currentDist < minDist) minDist = currentDist;
+            cp = dirRay.cast(borders[i]);
+            if (cp) {
+                dist = Calc.distance(dirRay.pos, cp);
+                if (dist < minDist) minDist = dist;
             }
         }
 
@@ -214,9 +214,9 @@ class Player {
 
 class Ray {
 
-    constructor(vectorPos, vectorDirection) {
-        this.pos = vectorPos;
-        this.dir = vectorDirection;
+    constructor(pos, dir) {
+        this.pos = pos;
+        this.dir = dir;
     }
 
     static updatePos(rays, pos) {
@@ -253,7 +253,7 @@ class Ray {
         ) / den;
 
         if (t > 0 && t < 1 && u > 0) { // point of collision exists
-            return new Vector( // point of collision of ray and border
+            return new Vector( // collision point of ray and border
                 brdr.start.x + t * (brdr.end.x - brdr.start.x),
                 brdr.start.y + t * (brdr.end.y - brdr.start.y)
             );
@@ -269,31 +269,31 @@ class Ray {
 
         let borders = Border.getRawBordersArr(colliders);
 
-        let closestCollisionPoint;
-        let currentCollisionPoint;
+        let closestCP;
+        let cp;
 
         for (let i = 0; i < rays.length; i++) { // for rays
 
-            closestCollisionPoint = null;
+            closestCP = null;
 
             for (let j = 0; j < borders.length; j++) { // for colliders
 
-                currentCollisionPoint = rays[i].cast(borders[j]); // false or Vector
+                cp = rays[i].cast(borders[j]); // false or Vector
 
-                if (currentCollisionPoint) { // if collision detected
+                if (cp) { // if collision detected
 
-                    if (closestCollisionPoint === null) {
-                        closestCollisionPoint = new Vector();
-                        Vector.copyVector(closestCollisionPoint, currentCollisionPoint);
+                    if (closestCP === null) {
+                        closestCP = new Vector();
+                        Vector.copyVector(closestCP, cp);
                     }
-                    else if (Calc.distance(rays[i], currentCollisionPoint) < Calc.distance(rays[i], closestCollisionPoint)) {
-                        Vector.copyVector(closestCollisionPoint, currentCollisionPoint);
+                    else if (Calc.distance(rays[i], cp) < Calc.distance(rays[i], closestCP)) {
+                        Vector.copyVector(closestCP, cp);
                     }
                 }
             }
 
             c.moveTo(rays[i].pos.x, rays[i].pos.y);
-            c.lineTo(closestCollisionPoint.x, closestCollisionPoint.y);
+            c.lineTo(closestCP.x, closestCP.y);
         }
 
         c.stroke();
@@ -302,9 +302,9 @@ class Ray {
 
 class Border {
 
-    constructor(vectorStart, vectorEnd) {
-        this.start = vectorStart;
-        this.end = vectorEnd;
+    constructor(start, end) {
+        this.start = start;
+        this.end = end;
     }
 
     static getRawBordersArr(colliders) {
@@ -417,6 +417,31 @@ class FirstPersonDrawer {
 
     draw() {
 
+        let borders = Border.getRawBordersArr(walls);
+
+        let cp;
+        let closestCP;
+        let dist;
+        let minDist;
+
+        for (let i = 0; i < player.rays.length; i++) { // for rays
+
+            closestCP = null;
+
+            for (let j = 0; j < borders.length; j++) {
+                cp = player.rays[i].cast(borders[j]);
+                if (cp) {
+                    if (closestCP === null) {
+                        closestCP = new Vector();
+                        Vector.copyVector(closestCP, cp);
+                    } else if (Calc.distance(player.rays[i], cp) < Calc.distance(player.rays[i], closestCP)) {
+                        Vector.copyVector(closestCP, cp);
+                    }
+                }
+            }
+
+
+        }
     }
 }
 

@@ -8,14 +8,34 @@
 </head>
 <body>
 
-    <div class="buttons-container">
-        <div id="raycasting" class="button selected">Raycasting</div>
-        <div class="button-separator"></div>
-        <div id="rendering" class="button">Rendering</div>
-    </div>
+<div class="buttons-container">
+    <div id="raycasting" class="button selected">Raycasting</div>
+    <div class="button-separator"></div>
+    <div id="rendering" class="button">Rendering</div>
+</div>
 
+<div id="content-container">
     <canvas id="canvas" width="1600" height="800"></canvas>
 
-    <script src="main.js"></script>
+    <div class="menu-container">
+        <div class="menu-item">
+            <div class="row-group">
+                <span>Rays per degree:</span>
+                <span id="rays-per-degree-span" class="data-span">5</span>
+            </div>
+            <input id="rays-per-degree-slider" type="range" min="1" max="20" value="5" step="1">
+        </div>
+
+        <div class="menu-item">
+            <div class="row-group">
+                <span>Angle of view:</span>
+                <span id="view-angle-span" class="data-span">60</span>
+            </div>
+            <input id="view-angle-slider" type="range" min="10" max="360" value="60" step="10">
+        </div>
+    </div>
+</div>
+
+<script src="main.js"></script>
 </body>
 </html>

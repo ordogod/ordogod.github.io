@@ -37,8 +37,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/main.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-5542">
-              <caret line="25" column="32" selection-start-line="25" selection-start-column="32" selection-end-line="25" selection-end-column="32" />
+            <state relative-caret-position="562">
+              <caret line="418" column="8" selection-start-line="418" selection-start-column="8" selection-end-line="418" selection-end-column="8" />
             </state>
           </provider>
         </entry>
@@ -123,7 +123,7 @@
       <option name="presentableId" value="Default" />
       <updated>1559038872237</updated>
       <workItem from="1559038879780" duration="5693000" />
-      <workItem from="1559062492032" duration="22863000" />
+      <workItem from="1559062492032" duration="25545000" />
     </task>
     <task id="LOCAL-00001" summary="Changed title of html page">
       <created>1559062801930</created>
@@ -181,11 +181,18 @@
       <option name="project" value="LOCAL" />
       <updated>1559124739821</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="Player implemented at rendering mode">
+      <created>1559140588038</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1559140588038</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="28556000" />
+    <option name="totallyTimeSpent" value="31238000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
@@ -221,7 +228,8 @@
     <MESSAGE value="Mode buttons handlers added" />
     <MESSAGE value="Modes switching implemented" />
     <MESSAGE value="Some optimisations and refactoring" />
-    <option name="LAST_COMMIT_MESSAGE" value="Some optimisations and refactoring" />
+    <MESSAGE value="Player implemented at rendering mode" />
+    <option name="LAST_COMMIT_MESSAGE" value="Player implemented at rendering mode" />
   </component>
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/index.html">
@@ -240,8 +248,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/main.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-5542">
-          <caret line="25" column="32" selection-start-line="25" selection-start-column="32" selection-end-line="25" selection-end-column="32" />
+        <state relative-caret-position="562">
+          <caret line="418" column="8" selection-start-line="418" selection-start-column="8" selection-end-line="418" selection-end-column="8" />
         </state>
       </provider>
     </entry>

@@ -24,7 +24,7 @@ const BORDERS_STROKE_COLOR = "#f0f8ff";
 
 const PLAYER_VIEW_ANGLE = 60;
 const PLAYER_RAYS_PER_DEGREE = 2;
-const PLAYER_SIZE = 12;
+const PLAYER_RADIUS = 12;
 const PLAYER_ROTATION_SPEED = 10;
 const PLAYER_MOVE_SPEED = 10;
 
@@ -38,6 +38,11 @@ const renderingSize = {
 const mouseCoords = {
     x: 0,
     y: 0
+};
+
+const WALLS_RANDOM_SIZE = {
+    min: 1,
+    max: Math.round(renderingSize.width * 0.7)
 };
 
 //==================== CLASSES ====================//
@@ -168,12 +173,30 @@ class Player {
     }
 
     moveForward() {
-        player.pos = new Vector(
+        let newPos = new Vector(
             player.pos.x + Math.cos(Calc.fromDegsToRads(player.rotationDegree)) * PLAYER_MOVE_SPEED,
             player.pos.y + Math.sin(Calc.fromDegsToRads(player.rotationDegree)) * PLAYER_MOVE_SPEED
         );
-        this.updateRaysPos();
-        console.log('forward');
+
+        let currentDist;
+        let minDist = Infinity;
+        let dirRay = this.rays[this.rays.length / 2];
+        let currentCollisionPoint;
+        let borders = Border.getRawBordersArr(walls);
+
+        for (let i = 0; i < borders.length; i++) {
+            currentCollisionPoint = dirRay.cast(borders[i]);
+            if (currentCollisionPoint) {
+                currentDist = Calc.distance(dirRay.pos, currentCollisionPoint);
+                if (currentDist < minDist) minDist = currentDist;
+            }
+        }
+
+        if (minDist >= 2 * PLAYER_RADIUS) {
+            this.pos = newPos;
+            this.updateRaysPos();
+            console.log('forward');
+        }
     }
 
     getPos() {
@@ -181,28 +204,10 @@ class Player {
     }
 
     draw() {
-        c.fillStyle = "#f0f8ff";
-        c.beginPath();
-        c.save();
-        c.translate(this.pos.x, this.pos.y);
-        c.moveTo(
-            Math.cos(Calc.fromDegsToRads(this.rotationDegree + 90)) * PLAYER_SIZE,
-            Math.sin(Calc.fromDegsToRads(this.rotationDegree + 90)) * PLAYER_SIZE
-        );
-        c.lineTo(
-            2 * Math.cos(Calc.fromDegsToRads(this.rotationDegree)) * PLAYER_SIZE,
-            2 * Math.sin(Calc.fromDegsToRads(this.rotationDegree)) * PLAYER_SIZE
-        );
-        c.lineTo(
-            Math.cos(Calc.fromDegsToRads(this.rotationDegree - 90)) * PLAYER_SIZE,
-            Math.sin(Calc.fromDegsToRads(this.rotationDegree - 90)) * PLAYER_SIZE
-        );
-        c.lineTo(
-            Math.cos(Calc.fromDegsToRads(this.rotationDegree + 90)) * PLAYER_SIZE,
-            Math.sin(Calc.fromDegsToRads(this.rotationDegree + 90)) * PLAYER_SIZE
-        );
-        c.fill();
-        c.restore();
+            c.fillStyle = "#f0f8ff";
+            c.beginPath();
+            c.arc(this.pos.x, this.pos.y, PLAYER_RADIUS, 0, 2 * Math.PI);
+            c.fill();
     }
 }
 
@@ -262,16 +267,7 @@ class Ray {
         c.strokeStyle = RAYS_STROKE_COLOR;
         c.beginPath();
 
-        let borders = [];
-        for (let i = 0; i < colliders.length; i++) {
-            if (colliders[i] instanceof Border)
-                borders.push(colliders[i]);
-            else { // if instance of Wall
-                for (let j = 0; j < colliders[i].borders.length; j++) {
-                    borders.push(colliders[i].borders[j]);
-                }
-            }
-        }
+        let borders = Border.getRawBordersArr(colliders);
 
         let closestCollisionPoint;
         let currentCollisionPoint;
@@ -311,6 +307,22 @@ class Border {
         this.end = vectorEnd;
     }
 
+    static getRawBordersArr(colliders) {
+        let borders = [];
+
+        for (let i = 0; i < colliders.length; i++) {
+            if (colliders[i] instanceof Border)
+                borders.push(colliders[i]);
+            else { // if instance of Wall
+                for (let j = 0; j < colliders[i].borders.length; j++) {
+                    borders.push(colliders[i].borders[j]);
+                }
+            }
+        }
+
+        return borders;
+    }
+
     static drawAll(borders) {
         c.lineWidth = BORDERS_STROKE_WIDTH;
         c.strokeStyle = BORDERS_STROKE_COLOR;
@@ -345,6 +357,39 @@ class Wall {
         this.borders.push(new Border(corners[corners.length - 1], corners[0]));
     }
 
+    static randomRectangleWall(isFilled) {
+        let corners = [];
+        let size = {
+            width: Math.round(WALLS_RANDOM_SIZE.min + (Math.random() * Math.abs(WALLS_RANDOM_SIZE.max - WALLS_RANDOM_SIZE.min))),
+            height: Math.round(WALLS_RANDOM_SIZE.min + (Math.random() * Math.abs(WALLS_RANDOM_SIZE.max - WALLS_RANDOM_SIZE.min))),
+        };
+
+        corners[0] = new Vector(Infinity, Infinity);
+
+        while(corners[0].x + size.width > renderingSize.width ||
+              corners[0].y + size.height > renderingSize.height) {
+            corners[0] = new Vector(
+                Math.round(Math.random() * renderingSize.width),
+                Math.round(Math.random() * renderingSize.height)
+            );
+        }
+
+        corners[1] = new Vector(
+            corners[0].x + size.width,
+            corners[0].y
+        );
+        corners[2] = new Vector(
+            corners[0].x + size.width,
+            corners[0].y + size.height
+        );
+        corners[3] = new Vector(
+            corners[0].x,
+            corners[0].y + size.height
+        );
+
+        return new Wall(corners, isFilled);
+    }
+
     draw() {
         c.lineWidth = BORDERS_STROKE_WIDTH;
         c.strokeStyle = BORDERS_STROKE_COLOR;
@@ -361,6 +406,17 @@ class Wall {
 
         if (this.filled) c.fill();
         else c.stroke();
+    }
+}
+
+class FirstPersonDrawer {
+
+    constructor() {
+
+    }
+
+    draw() {
+
     }
 }
 
@@ -432,8 +488,12 @@ const walls = [
         new Vector(renderingSize.width, 0),
         new Vector(renderingSize.width, renderingSize.height),
         new Vector(0, renderingSize.height)
-    ], false)
+    ], false),
+    Wall.randomRectangleWall(true),
+    Wall.randomRectangleWall(true),
+    Wall.randomRectangleWall(true)
 ];
+const fpd = new FirstPersonDrawer();
 
 raycastingInterval = setInterval(raycastingLoop, tick);
 
@@ -462,6 +522,8 @@ function renderingLoop() {
 
     Ray.updatePos(player.rays, player.getPos());
     Ray.drawAll(player.rays, walls);
+
+    fpd.draw();
 }
 
 function updateCurrentMouseCoords(p) {

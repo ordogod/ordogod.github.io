@@ -1,7 +1,5 @@
 "use strict";
 
-alert("Use mouse to move at raycasting screen.\nUse W A S D to move at rendering screen.");
-
 let raysRange = document.getElementById("rays-per-degree-slider");
 let angleRange = document.getElementById("view-angle-slider");
 
